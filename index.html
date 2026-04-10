@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finance Monitor</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <h1>Finance monitor</h1>
+      <div class="topbar-right">
+        <div class="currency-toggle">
+          <button class="ctog active" id="togARS" onclick="setCurrency('ARS')">ARS</button>
+          <button class="ctog" id="togUSD" onclick="setCurrency('USD')">USD</button>
+        </div>
+        <button class="btn btn-success" onclick="exportCSV()">Export CSV</button>
+        <button class="btn btn-primary" onclick="showTab('add-txn')">+ Transaction</button>
+        <button class="btn" onclick="showTab('accounts')">+ Account</button>
+      </div>
+    </div>
+
+    <div class="metrics" id="metricsRow"></div>
+    <div id="alertsBox"></div>
+
+    <div class="tab-bar">
+      <div class="tab active" onclick="showTab('dashboard')" id="tab-dashboard">Dashboard</div>
+      <div class="tab" onclick="showTab('transactions')" id="tab-transactions">Transactions</div>
+      <div class="tab" onclick="showTab('budgets')" id="tab-budgets">Budgets</div>
+      <div class="tab" onclick="showTab('accounts')" id="tab-accounts">Accounts</div>
+      <div class="tab" onclick="showTab('add-txn')" id="tab-add-txn">Log transaction</div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <p class="sec-title">Accounts & wallets</p>
+      <div class="accounts-grid" id="accountsGrid"></div>
+      <div class="main-grid">
+        <div class="panel">
+          <p class="sec-title">Recent transactions</p>
+          <div class="txn-list" id="txnListDash"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div class="panel">
+            <p class="sec-title">Balance trend (30d)</p>
+            <div class="chart-wrap"><canvas id="mc"></canvas></div>
+          </div>
+          <div class="panel">
+            <p class="sec-title">By account</p>
+            <div id="distRows"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSACTIONS -->
+    <div class="view" id="view-transactions">
+      <div class="panel">
+        <div class="filter-bar">
+          <button class="fpill active" onclick="setFilter('all',this)">All</button>
+          <button class="fpill" onclick="setFilter('income',this)">Income</button>
+          <button class="fpill" onclick="setFilter('expense',this)">Expense</button>
+          <select class="fsel" id="filterAcc" onchange="renderTxns('txnListFull')"></select>
+          <select class="fsel" id="filterCat" onchange="renderTxns('txnListFull')"></select>
+          <input class="fsearch" id="txnSearch" placeholder="Search..." oninput="renderTxns('txnListFull')" />
+        </div>
+        <div class="txn-list" id="txnListFull" style="max-height:500px"></div>
+      </div>
+    </div>
+
+    <!-- BUDGETS -->
+    <div class="view" id="view-budgets">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:14px">
+        <div class="panel">
+          <p class="sec-title" style="margin-bottom:12px">Monthly budgets</p>
+          <div class="budget-list" id="budgetList"></div>
+        </div>
+        <div class="panel">
+          <p class="sec-title" style="margin-bottom:10px">Add budget</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="fl">Category</label><input class="fi" id="bCat" placeholder="e.g. Food, Transport..." /></div>
+            <div><label class="fl">Monthly limit (ARS)</label><input class="fi" id="bLimit" type="number" placeholder="50000" /></div>
+            <button class="btn btn-primary" onclick="addBudget()" style="margin-top:4px">Add budget</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACCOUNTS -->
+    <div class="view" id="view-accounts">
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:14px">
+        <div class="panel">
+          <p class="sec-title" style="margin-bottom:10px">All accounts</p>
+          <div class="accounts-grid" id="accountsGridFull" style="margin-bottom:0"></div>
+        </div>
+        <div class="panel">
+          <p class="sec-title" style="margin-bottom:10px">Add account</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="fl">Name</label><input class="fi" id="accName" placeholder="e.g. Naranja X..." /></div>
+            <div><label class="fl">Type</label>
+              <select class="fsi" id="accType">
+                <option value="bank">Bank account</option>
+                <option value="wallet">Digital wallet</option>
+                <option value="crypto">Crypto wallet</option>
+              </select>
+            </div>
+            <div><label class="fl">Balance (ARS)</label><input class="fi" id="accBal" type="number" placeholder="0" /></div>
+            <div><label class="fl">Monthly budget (ARS, optional)</label><input class="fi" id="accBudget" type="number" placeholder="0" /></div>
+            <button class="btn btn-primary" onclick="addAccount()" style="margin-top:4px">Add account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOG TRANSACTION -->
+    <div class="view" id="view-add-txn">
+      <div class="panel" style="max-width:500px">
+        <p class="sec-title" style="margin-bottom:14px">Log a transaction</p>
+        <div class="form-grid">
+          <div class="fg1"><label class="fl">Description</label><input class="fi" id="txDesc" placeholder="e.g. Supermercado..." /></div>
+          <div><label class="fl">Amount (ARS)</label><input class="fi" id="txAmt" type="number" placeholder="5000" /></div>
+          <div><label class="fl">Type</label>
+            <select class="fsi" id="txType">
+              <option value="expense">Expense</option>
+              <option value="income">Income</option>
+            </select>
+          </div>
+          <div><label class="fl">Account</label><select class="fsi" id="txAcc"></select></div>
+          <div><label class="fl">Category</label><input class="fi" id="txCat" placeholder="Food, Transport..." /></div>
+          <div><label class="fl">Date</label><input class="fi" id="txDate" type="date" /></div>
+          <div class="fg1"><button class="btn btn-primary" style="width:100%" onclick="addTxn()">Log transaction</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
